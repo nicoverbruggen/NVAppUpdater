@@ -41,17 +41,17 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     }
 
     func installUpdate() async {
-        print("===========================================")
-        print("\(Executable.name), version \(Executable.fullVersion)")
-        print("Using AppUpdater by Nico Verbruggen")
-        print("===========================================")
+        Log.text("===========================================")
+        Log.text("\(Executable.name), version \(Executable.fullVersion)")
+        Log.text("Using AppUpdater by Nico Verbruggen")
+        Log.text("===========================================")
 
-        print("Configured for \(self.appName) bundles: \(self.bundleIdentifiers)")
+        Log.text("Configured for \(self.appName) bundles: \(self.bundleIdentifiers)")
 
         self.updaterPath = self.baseUpdaterPath
             .replacingOccurrences(of: "~", with: NSHomeDirectory())
 
-        print("Updater directory set to: \(self.updaterPath)")
+        Log.text("Updater directory set to: \(self.updaterPath)")
 
         self.manifestPath = "\(updaterPath)/update.json"
 
@@ -75,15 +75,15 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
     private func parseManifest() async -> ReleaseManifest? {
         // Read out the correct information from the manifest JSON
-        print("Checking manifest file at \(manifestPath)...")
+        Log.text("Checking manifest file at \(manifestPath)...")
 
         do {
             let manifestText = try String(contentsOfFile: manifestPath)
             manifest = try JSONDecoder().decode(ReleaseManifest.self, from: manifestText.data(using: .utf8)!)
             return manifest
         } catch {
-            print("Parsing the manifest failed (or the manifest file doesn't exist)!")
-            await Alert.show(description: "The manifest file for a potential update was not found. Please try searching for updates again in \(appName).")
+            Log.text("Parsing the manifest failed (or the manifest file doesn't exist)!")
+            await Alert.upgradeFailure(description: "The manifest file for a potential update was not found. Please try searching for updates again in \(appName).")
         }
 
         return nil
@@ -102,16 +102,16 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
         // Ensure the zip exists
         if filename.isEmpty {
-            print("The update has not been downloaded. Sadly, that means that \(appName) cannot not updated!")
-            await Alert.show(description: "The update could not be downloaded, or the file was not correctly written to disk. \n\nPlease try again. \n\n(Note that the download will time-out after 20 seconds, so for slow connections it is recommended to manually download the update.)")
+            Log.text("The update has not been downloaded. Sadly, that means that \(appName) cannot not updated!")
+            await Alert.upgradeFailure(description: "The update could not be downloaded, or the file was not correctly written to disk. \n\nPlease try again. \n\n(Note that the download will time-out after 20 seconds, so for slow connections it is recommended to manually download the update.)")
         }
 
         // Calculate the checksum for the downloaded file
-        let checksum = system("openssl dgst -sha256 \"\(updaterPath)/\(filename)\" | awk '{print $NF}'")
+        let checksum = system("openssl dgst -sha256 \"\(updaterPath)/\(filename)\" | awk '{Log.text $NF}'")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Compare the checksums
-        print("""
+        Log.text("""
         Comparing checksums...
         Expected SHA256: \(manifest.sha256)
         Actual SHA256: \(checksum)
@@ -119,8 +119,8 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
         // Make sure the checksum matches before we do anything with the file
         if checksum != manifest.sha256 {
-            print("The checksums failed to match. Cancelling!")
-            await Alert.show(description: "The downloaded update failed checksum validation. Please try again. If this issue persists, there may be an issue with the server and I do not recommend upgrading.")
+            Log.text("The checksums failed to match. Cancelling!")
+            await Alert.upgradeFailure(description: "The downloaded update failed checksum validation. Please try again. If this issue persists, there may be an issue with the server and I do not recommend upgrading.")
         }
 
         // Return the path to the zip
@@ -137,7 +137,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         // Make sure the updater directory exists
         var isDirectory: ObjCBool = true
         if !FileManager.default.fileExists(atPath: "\(updaterPath)/extracted", isDirectory: &isDirectory) {
-            await Alert.show(description: "The updater directory is missing. The automatic updater will quit. Make sure that `\(baseUpdaterPath)` is writeable.")
+            await Alert.upgradeFailure(description: "The updater directory is missing. The automatic updater will quit. Make sure that `\(baseUpdaterPath)` is writeable.")
         }
 
         // Unzip the file
@@ -147,15 +147,15 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         let app = system("ls \"\(updaterPath)/extracted\" | grep .app")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        print("Finished extracting: \(updaterPath)/extracted/\(app)")
+        Log.text("Finished extracting: \(updaterPath)/extracted/\(app)")
 
         // Make sure the file was extracted
         if app.isEmpty {
-            await Alert.show(description: "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `\(baseUpdaterPath)` is writeable.")
+            await Alert.upgradeFailure(description: "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `\(baseUpdaterPath)` is writeable.")
         }
 
         // Remove the original app
-        print("Removing \(app) before replacing...")
+        Log.text("Removing \(app) before replacing...")
         system_quiet("rm -rf \"/Applications/\(app)\"")
 
         // Move the new app in place

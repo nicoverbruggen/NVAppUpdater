@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "AppUpdater",
+    defaultLocalization: "en"
     platforms: [.macOS(.v11)],
     products: [
         .library(name: "AppUpdater", targets: ["AppUpdater"]),

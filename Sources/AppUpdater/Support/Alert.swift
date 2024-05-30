@@ -9,21 +9,55 @@ import Cocoa
 class Alert {
     public static var appName: String = ""
 
-    public static func show(description: String, shouldExit: Bool = true) async {
-        await withUnsafeContinuation { continuation in
-            DispatchQueue.main.async {
-                let alert = NSAlert()
-                alert.messageText = "\(Alert.appName) could not be updated."
-                alert.informativeText = description
-                alert.addButton(withTitle: "OK")
-                alert.alertStyle = .critical
-                alert.runModal()
-                if shouldExit {
-                    exit(0)
-                }
-                continuation.resume()
+    // MARK: - Specific Cases
+
+    @MainActor
+    public static func upgradeFailure(description: String, shouldExit: Bool = true) async {
+        await confirm(
+            title: "\(Alert.appName) could not be updated.",
+            description: description,
+            alertStyle: .critical,
+            callback: {
+                exit(0)
             }
+        )
+    }
+
+    // MARK: - Generic
+
+    @MainActor
+    public static func confirm(
+        title: String,
+        description: String,
+        alertStyle: NSAlert.Style = .informational,
+        callback: (() -> Void)? = nil
+    ) async {
+        let alert = await NSAlert()
+        alert.messageText = title
+        alert.informativeText = description
+        await alert.addButton(withTitle: "OK")
+        alert.alertStyle = alertStyle
+        await alert.runModal()
+        if callback != nil {
+            callback!()
         }
+    }
+
+    @MainActor
+    public static func choose(
+        title: String,
+        description: String,
+        options: [String],
+        cancel: Bool = false
+    ) async -> NSApplication.ModalResponse {
+        let alert = await NSAlert()
+        alert.messageText = title
+        alert.informativeText = description
+        for option in options {
+            await alert.addButton(withTitle: option)
+        }
+        alert.alertStyle = .informational
+        return await alert.runModal()
     }
 }
 
