@@ -5,7 +5,7 @@
 
 import Cocoa
 
-open class AppSelfUpdater: NSObject, NSApplicationDelegate {
+open class SelfUpdater: NSObject, NSApplicationDelegate {
 
     // MARK: - Requires Configuration
 
@@ -41,9 +41,12 @@ open class AppSelfUpdater: NSObject, NSApplicationDelegate {
     }
 
     func installUpdate() async {
-        print("APP SELF-UPDATER by Nico Verbruggen")
-        print("Configured for \(self.appName)\n\(self.bundleIdentifiers)")
         print("===========================================")
+        print("\(Executable.name), version \(Executable.fullVersion)")
+        print("Using AppUpdater by Nico Verbruggen")
+        print("===========================================")
+
+        print("Configured for \(self.appName) bundles: \(self.bundleIdentifiers)")
 
         self.updaterPath = self.baseUpdaterPath
             .replacingOccurrences(of: "~", with: NSHomeDirectory())
@@ -170,4 +173,9 @@ open class AppSelfUpdater: NSObject, NSApplicationDelegate {
         // Return the new location of the app
         return "/Applications/\(app)"
     }
+}
+
+struct ReleaseManifest: Codable {
+    let url: String
+    let sha256: String
 }

@@ -24,7 +24,7 @@ As a separate target (for a macOS app), you need to add the following file:
 import Cocoa
 import AppUpdater
 
-let delegate = AppSelfUpdater(
+let delegate = SelfUpdater(
     appName: "My App",
     bundleIdentifiers: ["com.example.my-app"],
     baseUpdaterPath: "~/.config/com.example.my-app/updater"
