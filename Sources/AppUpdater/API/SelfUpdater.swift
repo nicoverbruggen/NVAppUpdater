@@ -9,10 +9,10 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
     // MARK: - Requires Configuration
 
-    public init(appName: String, bundleIdentifiers: [String], baseUpdaterPath: String) {
+    public init(appName: String, bundleIdentifiers: [String], selfUpdaterPath: String) {
         self.appName = appName
         self.bundleIdentifiers = bundleIdentifiers
-        self.baseUpdaterPath = baseUpdaterPath
+        self.selfUpdaterPath = selfUpdaterPath
     }
 
     // MARK: - Regular Updater Flow
@@ -20,7 +20,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     // Set by the user
     private var appName: String
     private var bundleIdentifiers: [String]
-    private var baseUpdaterPath: String
+    private var selfUpdaterPath: String
 
     // Determined during the flow of the updater
     private var updaterPath: String = ""
@@ -48,7 +48,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
         Log.text("Configured for \(self.appName) bundles: \(self.bundleIdentifiers)")
 
-        self.updaterPath = self.baseUpdaterPath
+        self.updaterPath = self.selfUpdaterPath
             .replacingOccurrences(of: "~", with: NSHomeDirectory())
 
         Log.text("Updater directory set to: \(self.updaterPath)")
@@ -137,7 +137,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         // Make sure the updater directory exists
         var isDirectory: ObjCBool = true
         if !FileManager.default.fileExists(atPath: "\(updaterPath)/extracted", isDirectory: &isDirectory) {
-            await Alert.upgradeFailure(description: "The updater directory is missing. The automatic updater will quit. Make sure that `\(baseUpdaterPath)` is writeable.")
+            await Alert.upgradeFailure(description: "The updater directory is missing. The automatic updater will quit. Make sure that `\(selfUpdaterPath)` is writeable.")
         }
 
         // Unzip the file
@@ -151,7 +151,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
         // Make sure the file was extracted
         if app.isEmpty {
-            await Alert.upgradeFailure(description: "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `\(baseUpdaterPath)` is writeable.")
+            await Alert.upgradeFailure(description: "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `\(selfUpdaterPath)` is writeable.")
         }
 
         // Remove the original app

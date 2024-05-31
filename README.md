@@ -1,20 +1,28 @@
-# AppUpdater Package
+# NVAppUpdater Package
 
-## What this does
+**Important**: 👷‍♂️ This package is currently **under construction**, and may change at any time.
 
-This is a package that helps you build a self-updater for a given macOS application. It is currently based on code for PHP Monitor.
+## What is this?
 
-This package contains code that can be used for the self-updater app that you can ship with your app, and code that you can use in your main app.
+This is a package that helps you build a self-updater for a given macOS application. It is supposed to act as an alternative to [Sparkle](https://sparkle-project.org/). 
+
+This was originally written as part of my "zero non first-party dependencies" policy for PHP Monitor, where [the original code](https://github.com/nicoverbruggen/phpmon/tree/641328760684472a9a3c6191d15dcab249d92271/phpmon-updater) has been responsible for serving updates for many users over the last few years.
+
+This package contains code that can be used to ship a self-updater app that you can ship alongside your app, with code that you can use in your main app.
 
 Your app must ship the self-updater as a separate sub-app, so that it can be launched independently from the main executable, which is terminated upon launching the sub-app.
 
+## How does it work?
+
 Here's how it works:
 
-- The updater checks if a newer manifest file is available. If there is, it is downloaded to the `UpdaterPath`.
+- From within the main app, you can perform a so-called `UpdateCheck`. This will connect to a URL of your choice where you have made a manifest file available. That manifest file is then checked and compared to the current version.
 
-- If the user chooses to install the update, the main app is terminated once the self-updater app has launched.
+- If the version specified in the manifest file is newer, then the user will see a message prompting them to update the app. If the user chooses to update to the newer version, details of the upgrade URL and checksum are written to a temporary file as a JSON file.
 
-- The self-updater will download the .zip file and validate it using the checksum provided in the manifest file. If the checksum is valid, the app is (re)placed in `/Applications` and finally launched.
+- If the user chooses to install the update, the main app is terminated once the self-updater app has launched. To do this, you must specify the correct bundle ID(s) in the self-updater, or the app won't be terminated.
+
+- The self-updater will download the .zip file and validate it using the checksum provided in the manifest file. If the checksum is valid, the app is (re)placed in `/Applications` and finally (re-)launched.
 
 ## Checking for updates
 
@@ -56,9 +64,11 @@ You must always place the CaskFile at the same URL, and you will specify where t
 To check for updates, simply create a new `UpdateCheck` instance with the correct configuration, and call `perform()`:
 
 ```swift
+import NVAppUpdater
+
 await UpdateCheck(
     selfUpdaterName: "MyApp Self-Updater.app",
-    selfUpdaterDirectory: "~/.config/com.example.my-app/updater",
+    selfUpdaterPath: "~/.config/com.example.my-app/updater",
     caskUrl: URL(string: "https://my-app.test/latest/build.rb")!,
     promptOnFailure: true
 ).perform()
@@ -70,12 +80,12 @@ As a separate target (for a macOS app), you need to add the following file:
 
 ```swift
 import Cocoa
-import AppUpdater
+import NVAppUpdater
 
 let delegate = SelfUpdater(
     appName: "My App",
     bundleIdentifiers: ["com.example.my-app"],
-    baseUpdaterPath: "~/.config/com.example.my-app/updater"
+    selfUpdaterPath: "~/.config/com.example.my-app/updater"
 )
 
 NSApplication.shared.delegate = delegate

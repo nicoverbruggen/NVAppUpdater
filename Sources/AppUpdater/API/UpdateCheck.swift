@@ -11,7 +11,7 @@ open class UpdateCheck
     let caskUrl: URL
     let promptOnFailure: Bool
     let selfUpdaterName: String
-    let selfUpdaterDirectory: String
+    let selfUpdaterPath: String
 
     var caskFile: CaskFile!
     var newerVersion: AppVersion!
@@ -22,8 +22,9 @@ open class UpdateCheck
      * - Parameter selfUpdaterName: The name of the self-updater .app file. For example, "App Self-Updater.app".
      *   This binary should exist as a resource of the current application.
      *
-     * - Parameter selfUpdaterDirectory: The directory that is used by the self-updater. A file `update.json`
-     *   will be placed in this directory and this should be correspond to the `baseUpdaterPath` in `SelfUpdater`.
+     * - Parameter selfUpdaterPath: The directory that is used by the self-updater.
+     *   A small manifest named `update.json` will be placed in this directory and this
+     *   should be correspond to the `selfUpdaterPath` in `SelfUpdater`.
      *
      * - Parameter caskUrl: The URL where the Cask file is expected to be located. Redirects will
      *   be followed when retrieving and validating the Cask file.
@@ -34,12 +35,12 @@ open class UpdateCheck
      */
     public init(
         selfUpdaterName: String,
-        selfUpdaterDirectory: String,
+        selfUpdaterPath: String,
         caskUrl: URL,
         promptOnFailure: Bool
     ) {
         self.selfUpdaterName = selfUpdaterName
-        self.selfUpdaterDirectory = selfUpdaterDirectory
+        self.selfUpdaterPath = selfUpdaterPath
         self.caskUrl = caskUrl
         self.promptOnFailure = promptOnFailure
     }
@@ -126,9 +127,9 @@ open class UpdateCheck
     private func launchSelfUpdater() {
         let updater = Bundle.main.resourceURL!.path + "/\(selfUpdaterName)"
 
-        system_quiet("mkdir -p \(selfUpdaterDirectory) 2> /dev/null")
+        system_quiet("mkdir -p \(selfUpdaterPath) 2> /dev/null")
 
-        let updaterDirectory = selfUpdaterDirectory
+        let updaterDirectory = selfUpdaterPath
             .replacingOccurrences(of: "~", with: NSHomeDirectory())
 
         system_quiet("cp -R \"\(updater)\" \"\(updaterDirectory)/\(selfUpdaterName)\"")

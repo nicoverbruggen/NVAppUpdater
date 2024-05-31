@@ -4,13 +4,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "AppUpdater",
-    defaultLocalization: "en"
+    name: "NVAppUpdater",
+    defaultLocalization: "en",
     platforms: [.macOS(.v11)],
     products: [
-        .library(name: "AppUpdater", targets: ["AppUpdater"]),
+        .library(name: "NVAppUpdater", targets: ["NVAppUpdater"]),
     ],
     targets: [
-        .target(name: "AppUpdater"),
+        .target(name: "NVAppUpdater"),
     ]
 )
