@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct CaskFile {
+public struct CaskFile {
     var properties: [String: String]
 
     var name: String { return self.properties["name"]! }

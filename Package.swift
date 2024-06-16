@@ -10,7 +10,11 @@ let package = Package(
     products: [
         .library(name: "NVAppUpdater", targets: ["NVAppUpdater"]),
     ],
+    dependencies: [
+        .package(name: "NVAlert", path: "/Users/nicoverbruggen/Code/SwiftPM/NVAlert")
+        // .package(url: "https://github.com/nicoverbruggen/NVAlert", branch: "main")
+    ],
     targets: [
-        .target(name: "NVAppUpdater"),
+        .target(name: "NVAppUpdater", dependencies: ["NVAlert"]),
     ]
 )
