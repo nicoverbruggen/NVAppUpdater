@@ -8,10 +8,10 @@ import Foundation
 public struct CaskFile {
     var properties: [String: String]
 
-    var name: String { return self.properties["name"]! }
-    var url: String { return self.properties["url"]! }
-    var sha256: String { return self.properties["sha256"]! }
-    var version: String { return self.properties["version"]! }
+    public var name: String { return self.properties["name"]! }
+    public var url: String { return self.properties["url"]! }
+    public var sha256: String { return self.properties["sha256"]! }
+    public var version: String { return self.properties["version"]! }
 
     static func from(url: URL) -> CaskFile? {
         var string: String?
