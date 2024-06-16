@@ -5,7 +5,7 @@
 
 import Foundation
 
-public struct CaskFile {
+public struct NVCaskFile {
     var properties: [String: String]
 
     public var name: String { return self.properties["name"]! }
@@ -13,7 +13,7 @@ public struct CaskFile {
     public var sha256: String { return self.properties["sha256"]! }
     public var version: String { return self.properties["version"]! }
 
-    static func from(url: URL) -> CaskFile? {
+    static func from(url: URL) -> NVCaskFile? {
         var string: String?
 
         if url.scheme == "file" {
@@ -65,6 +65,6 @@ public struct CaskFile {
             return nil
         }
 
-        return CaskFile(properties: props)
+        return NVCaskFile(properties: props)
     }
 }

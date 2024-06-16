@@ -13,8 +13,8 @@ open class UpdateCheck
     let selfUpdaterName: String
     let selfUpdaterPath: String
 
-    private var releaseNotesUrlCallback: ((CaskFile) -> URL?)? = nil
-    private var caskFile: CaskFile!
+    private var releaseNotesUrlCallback: ((NVCaskFile) -> URL?)? = nil
+    private var caskFile: NVCaskFile!
     private var newerVersion: AppVersion!
 
     /**
@@ -40,7 +40,7 @@ open class UpdateCheck
         self.caskUrl = caskUrl
     }
 
-    public func resolvingReleaseNotes(with callback: @escaping (CaskFile) -> URL?) -> Self {
+    public func resolvingReleaseNotes(with callback: @escaping (NVCaskFile) -> URL?) -> Self {
         self.releaseNotesUrlCallback = callback
         return self
     }
@@ -53,7 +53,7 @@ open class UpdateCheck
      *   for updates.
      */
     public func perform(promptOnFailure: Bool = true) async {
-        guard let caskFile = CaskFile.from(url: caskUrl) else {
+        guard let caskFile = NVCaskFile.from(url: caskUrl) else {
             Log.text("The contents of the CaskFile at '\(caskUrl.absoluteString)' could not be retrieved.")
             return await presentCouldNotRetrieveUpdate(promptOnFailure)
         }
