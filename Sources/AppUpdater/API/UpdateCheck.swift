@@ -9,6 +9,36 @@ import NVAlert
 
 open class UpdateCheck
 {
+    /**
+     * Translations that can be overridden.
+     */
+    public struct translations {
+        public static var couldNotRetrieveUpdateTitle
+            = "Could not retrieve update information."
+
+        public static var couldNotRetrieveUpdateDescription
+            = "There was an issue retrieving information about possible updates. This could be a connection or server issue. Check your internet connection and try again later."
+
+        public static var appIsUpToDateTitle
+            = "%@ is up-to-date!"
+
+        public static var appIsUpToDateDescription
+            = "The version on the server is not newer than this version, so you're all good."
+
+        public static var updateAvailableTitle
+            = "An updated version of %@ is available."
+
+        public static var updateAvailableSubtitle
+            = "Version %@ is available for download."
+
+        public static var updateAvailableDescription
+            = "Do you want to download and install this updated version?"
+
+        public static var buttonInstall = "Install"
+        public static var buttonDismiss = "Dismiss"
+        public static var buttonViewReleaseNotes = "View Release Notes"
+    }
+
     let caskUrl: URL
     let selfUpdaterName: String
     let selfUpdaterPath: String
@@ -40,6 +70,11 @@ open class UpdateCheck
         self.caskUrl = caskUrl
     }
 
+    /**
+     * Resolves the URL for the release notes using he given callback.
+     * 
+     * You will be able to use the retrieved CaskFile which you may need in order to determine the complete URL.
+     */
     public func resolvingReleaseNotes(with callback: @escaping (NVCaskFile) -> URL?) -> Self {
         self.releaseNotesUrlCallback = callback
         return self
@@ -86,8 +121,8 @@ open class UpdateCheck
 
         if promptOnFailure {
             await Alert.confirm(
-                title: "Could not retrieve update information!",
-                description: "There was an issue retrieving information about possible updates. This could be a connection or server issue. Check your internet connection and try again later."
+                title: translations.couldNotRetrieveUpdateTitle,
+                description: translations.couldNotRetrieveUpdateDescription
             )
         }
     }
@@ -97,8 +132,9 @@ open class UpdateCheck
 
         if promptOnFailure {
             await Alert.confirm(
-                title: "The app is up-to-date!",
-                description: "The version on the server is not newer than this version, so you're all good."
+                title: translations.appIsUpToDateTitle
+                    .replacingOccurrences(of: "%@", with: Executable.name),
+                description: translations.appIsUpToDateDescription
             )
         }
     }
@@ -109,24 +145,26 @@ open class UpdateCheck
         let current = AppVersion.fromCurrentVersion()
 
         let alert = await NVAlert().withInformation(
-            title: "An updated version of \(Executable.name) is available.",
-            subtitle: "Version \(newerVersion.version) is available for download.",
-            description: "Do you want to download and install this updated version?"
+            title: translations.updateAvailableTitle
+                .replacingOccurrences(of: "%@", with: Executable.name),
+            subtitle: translations.updateAvailableSubtitle
+                .replacingOccurrences(of: "%@", with: newerVersion.version),
+            description: translations.updateAvailableDescription
         )
         .withPrimary(
-            text: "Install",
+            text: translations.buttonInstall,
             action: { vc in
                 vc.close(with: .OK)
                 self.launchSelfUpdater()
             }
         )
-        .withTertiary(text: "Dismiss", action: { vc in
+        .withTertiary(text: translations.buttonDismiss, action: { vc in
             vc.close(with: .OK)
         })
 
         if let callback = self.releaseNotesUrlCallback,
            let url = callback(self.caskFile) {
-            await alert.withSecondary(text: "View Release Notes") { _ in
+            await alert.withSecondary(text: translations.buttonViewReleaseNotes) { _ in
                 NSWorkspace.shared.open(url)
             }
         }
