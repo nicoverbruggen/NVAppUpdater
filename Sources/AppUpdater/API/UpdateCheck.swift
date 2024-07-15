@@ -142,8 +142,6 @@ open class UpdateCheck
     private func presentNewerVersionAvailable() async {
         Log.text("A newer version is available!")
 
-        let current = AppVersion.fromCurrentVersion()
-
         let alert = await NVAlert().withInformation(
             title: translations.updateAvailableTitle
                 .replacingOccurrences(of: "%@", with: Executable.name),
@@ -164,7 +162,7 @@ open class UpdateCheck
 
         if let callback = self.releaseNotesUrlCallback,
            let url = callback(self.caskFile) {
-            await alert.withSecondary(text: translations.buttonViewReleaseNotes) { _ in
+            let _ = await alert.withSecondary(text: translations.buttonViewReleaseNotes) { _ in
                 NSWorkspace.shared.open(url)
             }
         }

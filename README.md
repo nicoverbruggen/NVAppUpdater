@@ -1,7 +1,5 @@
 # NVAppUpdater Package
 
-**Important**: 👷‍♂️ This package is currently **under construction**, and may change at any time.
-
 ## What is this?
 
 This is a package that helps you build a self-updater for a given macOS application. It is supposed to act as an alternative to [Sparkle](https://sparkle-project.org/). 

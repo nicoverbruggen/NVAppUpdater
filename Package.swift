@@ -5,13 +5,12 @@ import PackageDescription
 
 let package = Package(
     name: "NVAppUpdater",
-    defaultLocalization: "en",
     platforms: [.macOS(.v11)],
     products: [
         .library(name: "NVAppUpdater", targets: ["NVAppUpdater"]),
     ],
     dependencies: [
-        .package(name: "NVAlert", path: "/Users/nicoverbruggen/Code/SwiftPM/NVAlert")
+        .package(name: "NVAlert", path: "/Users/nicoverbruggen/Code/SwiftPM/NVAlert"),
         // .package(url: "https://github.com/nicoverbruggen/NVAlert", branch: "main")
     ],
     targets: [

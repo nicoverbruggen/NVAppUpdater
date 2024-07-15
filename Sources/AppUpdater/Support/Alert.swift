@@ -32,12 +32,12 @@ class Alert {
         alertStyle: NSAlert.Style = .informational,
         callback: (() -> Void)? = nil
     ) async {
-        let alert = await NSAlert()
+        let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = description
-        await alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "OK")
         alert.alertStyle = alertStyle
-        await alert.runModal()
+        alert.runModal()
         if callback != nil {
             callback!()
         }
@@ -50,14 +50,14 @@ class Alert {
         options: [String],
         cancel: Bool = false
     ) async -> NSApplication.ModalResponse {
-        let alert = await NSAlert()
+        let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = description
         for option in options {
-            await alert.addButton(withTitle: option)
+            alert.addButton(withTitle: option)
         }
         alert.alertStyle = .informational
-        return await alert.runModal()
+        return alert.runModal()
     }
 }
 
