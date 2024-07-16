@@ -107,7 +107,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         }
 
         // Calculate the checksum for the downloaded file
-        let checksum = system("openssl dgst -sha256 \"\(updaterPath)/\(filename)\" | awk '{Log.text $NF}'")
+        let checksum = system("openssl dgst -sha256 \"\(updaterPath)/\(filename)\" | awk '{print $NF}'")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Compare the checksums
