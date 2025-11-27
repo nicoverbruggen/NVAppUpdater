@@ -42,6 +42,7 @@ open class UpdateCheck
     let caskUrl: URL
     let selfUpdaterName: String
     let selfUpdaterPath: String
+    let isInteractive: Bool
 
     private var releaseNotesUrlCallback: ((NVCaskFile) -> URL?)? = nil
     private var caskFile: NVCaskFile!
@@ -59,15 +60,21 @@ open class UpdateCheck
      *
      * - Parameter caskUrl: The URL where the Cask file is expected to be located. Redirects will
      *   be followed when retrieving and validating the Cask file.
+     *
+     * - Parameter isInteractive: Whether user interaction is required when failing to check
+     *   or no new update is found. A user usually expects a prompt if they manually searched
+     *   for updates.
      */
     public init(
         selfUpdaterName: String,
         selfUpdaterPath: String,
-        caskUrl: URL
+        caskUrl: URL,
+        isInteractive: Bool
     ) {
         self.selfUpdaterName = selfUpdaterName
         self.selfUpdaterPath = selfUpdaterPath
         self.caskUrl = caskUrl
+        self.isInteractive = isInteractive
     }
 
     /**
@@ -82,15 +89,11 @@ open class UpdateCheck
 
     /**
      * Perform the check for a new version.
-     *
-     * - Parameter promptOnFailure: Whether user interaction is required when failing to check
-     *   or no new update is found. A user usually expects a prompt if they manually searched
-     *   for updates.
      */
-    public func perform(promptOnFailure: Bool = true) async {
+    public func perform() async {
         guard let caskFile = NVCaskFile.from(url: caskUrl) else {
             Log.text("The contents of the CaskFile at '\(caskUrl.absoluteString)' could not be retrieved.")
-            return await presentCouldNotRetrieveUpdate(promptOnFailure)
+            return await presentCouldNotRetrieveUpdate()
         }
 
         self.caskFile = caskFile
@@ -99,7 +102,7 @@ open class UpdateCheck
 
         guard let onlineVersion = AppVersion.from(caskFile.version) else {
             Log.text("The version string from the CaskFile could not be read.")
-            return await presentCouldNotRetrieveUpdate(promptOnFailure)
+            return await presentCouldNotRetrieveUpdate()
         }
 
         self.newerVersion = onlineVersion
@@ -108,33 +111,34 @@ open class UpdateCheck
         Log.text("The current version is v\(currentVersion.computerReadable).")
 
         if onlineVersion > currentVersion {
+            // A newer version is available
             await presentNewerVersionAvailable()
-        } else if promptOnFailure {
-            await presentVersionIsUpToDate(promptOnFailure)
+        } else {
+            await presentVersionUpToDate()
         }
     }
 
     // MARK: - Alerts
 
-    private func presentCouldNotRetrieveUpdate(_ promptOnFailure: Bool) async {
-        Log.text("Could not retrieve update manifest!")
+    private func presentVersionUpToDate() async {
+        Log.text("Application is up-to-date!")
 
-        if promptOnFailure {
-            await Alert.confirm(
-                title: translations.couldNotRetrieveUpdateTitle,
-                description: translations.couldNotRetrieveUpdateDescription
-            )
-        }
-    }
-
-    private func presentVersionIsUpToDate(_ promptOnFailure: Bool) async {
-        Log.text("Version is up-to-date!")
-
-        if promptOnFailure {
+        if isInteractive {
             await Alert.confirm(
                 title: translations.appIsUpToDateTitle
                     .replacingOccurrences(of: "%@", with: Executable.name),
                 description: translations.appIsUpToDateDescription
+            )
+        }
+    }
+
+    private func presentCouldNotRetrieveUpdate() async {
+        Log.text("Could not retrieve update manifest!")
+
+        if isInteractive {
+            await Alert.confirm(
+                title: translations.couldNotRetrieveUpdateTitle,
+                description: translations.couldNotRetrieveUpdateDescription
             )
         }
     }
@@ -167,7 +171,7 @@ open class UpdateCheck
             }
         }
 
-        await alert.show()
+        await alert.show(urgency: isInteractive ? .bringToFront : .urgentRequestAttention)
     }
 
     // MARK: - Functional

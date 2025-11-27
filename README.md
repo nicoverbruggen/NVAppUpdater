@@ -68,7 +68,8 @@ await UpdateCheck(
     selfUpdaterName: "MyApp Self-Updater.app",
     selfUpdaterPath: "~/.config/com.example.my-app/updater",
     caskUrl: URL(string: "https://my-app.test/latest/build.rb")!,
-).perform(promptOnFailure: true)
+    isInteractive: true,
+).perform()
 ```
 
 You can also specify what callback needs to be used to determine the correct URL for the release notes. You may need to get some information from the CaskFile, which you are free to source. For example:
@@ -80,11 +81,12 @@ await UpdateCheck(
     selfUpdaterName: "MyApp Self-Updater.app",
     selfUpdaterPath: "~/.config/com.example.my-app/updater",
     caskUrl: URL(string: "https://my-app.test/latest/build.rb")!,
+    isInteractive: true,
 )
 .resolvingReleaseNotes(with: { caskFile in
     return URL(string: "https://my-app.com/release-notes/\(caskFile.version)")!
 })
-.perform(promptOnFailure: true)
+.perform()
 ```
 
 ## Self-Updater
