@@ -108,18 +108,18 @@ extension SelfUpdater {
         /**
          * Status text shown while the update archive is downloading.
          */
-        public static var progressStepDownloadingUpdate = "Downloading update"
+        public static var progressStepDownloadingUpdate = "Downloading update..."
 
         /**
          * Status text shown while the downloaded archive is being extracted and validated.
          */
-        public static var progressStepExtractingUpdate = "Extracting update"
+        public static var progressStepExtractingUpdate = "Extracting update..."
 
         /**
          * Status text shown while the app is being restarted. `%@` is replaced with the
          * application name.
          */
-        public static var progressStepRestartingApp = "Restarting %@"
+        public static var progressStepRestartingApp = "Restarting %@..."
 
         /**
          * Alert description shown when the local update manifest contains an invalid
@@ -136,7 +136,7 @@ extension SelfUpdater {
         /**
          * Alert description shown when the downloaded archive fails SHA-256 validation.
          */
-        public static var checksumValidationFailedDescription = "The downloaded update failed checksum validation. Please try again. If this issue persists, there may be an issue with the server and I do not recommend upgrading."
+        public static var checksumValidationFailedDescription = "The downloaded update failed checksum validation. Please try again. If this issue persists, please download the update manually and verify the checksum."
 
         /**
          * Alert title shown when the helper updater cannot complete the update. `%@`
