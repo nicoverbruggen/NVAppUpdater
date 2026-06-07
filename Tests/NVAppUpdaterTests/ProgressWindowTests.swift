@@ -94,20 +94,20 @@ final class ProgressWindowTests: XCTestCase {
 
         harness.showWindow()
         XCTAssertEqual(harness.stepTitles, [
-            "Downloading update",
-            "Extracting update",
-            "Restarting Fake App"
+            "Downloading update...",
+            "Extracting update...",
+            "Restarting Fake App..."
         ])
-        XCTAssertEqual(harness.currentStepTitle, "Downloading update")
+        XCTAssertEqual(harness.currentStepTitle, "Downloading update...")
 
         harness.update(written: 50 * 1024 * 1024, total: 100 * 1024 * 1024)
         XCTAssertEqual(harness.fractionCompleted, 0.5)
 
         harness.advance(to: .extractingUpdate)
-        XCTAssertEqual(harness.currentStepTitle, "Extracting update")
+        XCTAssertEqual(harness.currentStepTitle, "Extracting update...")
 
         harness.advance(to: .restartingApplication)
-        XCTAssertEqual(harness.currentStepTitle, "Restarting Fake App")
+        XCTAssertEqual(harness.currentStepTitle, "Restarting Fake App...")
 
         harness.finish()
         XCTAssertFalse(harness.hasVisibleWindow)

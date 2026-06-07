@@ -48,8 +48,7 @@ class Alert {
     public static func choose(
         title: String,
         description: String,
-        options: [String],
-        cancel: Bool = false
+        options: [String]
     ) async -> NSApplication.ModalResponse {
         let alert = NSAlert()
         alert.messageText = title

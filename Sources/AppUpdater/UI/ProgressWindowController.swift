@@ -43,8 +43,8 @@ final class ProgressWindowController {
         revealTask = nil
 
         if let window {
-            window.center()
             window.makeKeyAndOrderFront(nil)
+            window.setCenterPosition(offsetY: 70)
             return
         }
 
@@ -63,8 +63,8 @@ final class ProgressWindowController {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         hosting.view.layoutSubtreeIfNeeded()
-        window.center()
         window.makeKeyAndOrderFront(nil)
+        window.setCenterPosition(offsetY: 70)
 
         self.window = window
     }
@@ -111,5 +111,18 @@ final class ProgressWindowController {
         revealTask = nil
         window?.close()
         window = nil
+    }
+}
+
+private extension NSWindow {
+    func setCenterPosition(offsetY: CGFloat = 0) {
+        guard let visibleFrame = screen?.visibleFrame ?? NSScreen.main?.visibleFrame else {
+            return
+        }
+
+        setFrameOrigin(NSPoint(
+            x: visibleFrame.midX - frame.size.width / 2,
+            y: visibleFrame.midY - frame.size.height / 2 + offsetY
+        ))
     }
 }
