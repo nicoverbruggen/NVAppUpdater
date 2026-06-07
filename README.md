@@ -115,25 +115,28 @@ The default alert and progress window text can be overridden before you run an u
 
 ### Checking for updates
 
-Use `UpdateCheck.translations` for the main app prompts:
+Use `UpdateCheck.Translations` for the main app prompts:
 
 ```swift
-UpdateCheck.translations.updateAvailableTitle = "A new version of %@ is ready."
-UpdateCheck.translations.updateAvailableSubtitle = "Version %@ can now be installed."
-UpdateCheck.translations.updateAvailableDescription = "Would you like to install this update now?"
-UpdateCheck.translations.buttonInstall = "Upgrade"
-UpdateCheck.translations.buttonDismiss = "Not Now"
-UpdateCheck.translations.buttonViewReleaseNotes = "Release Notes"
+UpdateCheck.Translations.updateAvailableTitle = "A new version of %@ is ready."
+UpdateCheck.Translations.updateAvailableSubtitle = "Version %@ can now be installed."
+UpdateCheck.Translations.updateAvailableDescription = "Would you like to install this update now?"
+UpdateCheck.Translations.buttonInstall = "Upgrade"
+UpdateCheck.Translations.buttonDismiss = "Not Now"
+UpdateCheck.Translations.buttonViewReleaseNotes = "Release Notes"
 ```
 
 Strings that contain `%@` will substitute the application name or version, depending on the string.
 
 ### Updater progress window and errors
 
-Use `SelfUpdater.translations` for the self-updater progress window and manifest failure text:
+Use `SelfUpdater.Translations` for the self-updater progress window and manifest failure text:
 
 ```swift
-SelfUpdater.translations.downloadProgressTitle = "Downloading update..."
-SelfUpdater.translations.downloadProgressWaitingForSize = "Preparing download..."
-SelfUpdater.translations.invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
+SelfUpdater.Translations.progressWindowTitle = "Updating %@"
+SelfUpdater.Translations.progressStepDownloadingUpdate = "Downloading update"
+SelfUpdater.Translations.progressStepExtractingUpdate = "Extracting update"
+SelfUpdater.Translations.progressStepRestartingApp = "Restarting %@"
+SelfUpdater.Translations.downloadProgressWaitingForSize = "Preparing download..."
+SelfUpdater.Translations.invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
 ```

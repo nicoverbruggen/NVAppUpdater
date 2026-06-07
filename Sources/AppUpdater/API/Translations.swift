@@ -9,7 +9,7 @@ extension UpdateCheck {
     /**
      * Translations that can be overridden.
      */
-    public struct translations {
+    public struct Translations {
         public static var couldNotRetrieveUpdateTitle
             = "Could not retrieve update information."
 
@@ -41,9 +41,12 @@ extension SelfUpdater {
     /**
      * Translations that can be overridden.
      */
-    public struct translations {
-        public static var downloadProgressTitle = "Downloading update, please wait.."
+    public struct Translations {
         public static var downloadProgressWaitingForSize = "Waiting for download size..."
+        public static var progressWindowTitle = "Updating %@"
+        public static var progressStepDownloadingUpdate = "Downloading update"
+        public static var progressStepExtractingUpdate = "Extracting update"
+        public static var progressStepRestartingApp = "Restarting %@"
         public static var invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
     }
 }

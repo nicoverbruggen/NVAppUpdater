@@ -7,16 +7,13 @@ import Foundation
 import Cocoa
 import NVAlert
 
-open class UpdateCheck
-{
+open class UpdateCheck {
     let caskUrl: URL
     let selfUpdaterName: String
     let selfUpdaterPath: String
     let isInteractive: Bool
 
     private var releaseNotesUrlCallback: ((NVCaskFile) -> URL?)? = nil
-    private var caskFile: NVCaskFile!
-    private var newerVersion: AppVersion!
 
     /**
      * Create a new update check instance. Once created, you should call `perform` on this instance.
@@ -26,7 +23,7 @@ open class UpdateCheck
      *
      * - Parameter selfUpdaterPath: The directory that is used by the self-updater.
      *   A small manifest named `update.json` will be placed in this directory and this
-     *   should be correspond to the `selfUpdaterPath` in `SelfUpdater`.
+     *   should correspond to the `selfUpdaterPath` in `SelfUpdater`.
      *
      * - Parameter caskUrl: The URL where the Cask file is expected to be located. Redirects will
      *   be followed when retrieving and validating the Cask file.
@@ -48,8 +45,8 @@ open class UpdateCheck
     }
 
     /**
-     * Resolves the URL for the release notes using he given callback.
-     * 
+     * Resolves the URL for the release notes using the given callback.
+     *
      * You will be able to use the retrieved CaskFile which you may need in order to determine the complete URL.
      */
     public func resolvingReleaseNotes(with callback: @escaping (NVCaskFile) -> URL?) -> Self {
@@ -66,8 +63,6 @@ open class UpdateCheck
             return await presentCouldNotRetrieveUpdate()
         }
 
-        self.caskFile = caskFile
-
         let currentVersion = AppVersion.fromCurrentVersion()
 
         guard let onlineVersion = AppVersion.from(caskFile.version) else {
@@ -75,14 +70,15 @@ open class UpdateCheck
             return await presentCouldNotRetrieveUpdate()
         }
 
-        self.newerVersion = onlineVersion
-
         Log.text("The latest version read from '\(caskUrl.lastPathComponent)' is: v\(onlineVersion.computerReadable).")
         Log.text("The current version is v\(currentVersion.computerReadable).")
 
         if onlineVersion > currentVersion {
             // A newer version is available
-            await presentNewerVersionAvailable()
+            await presentNewerVersionAvailable(
+                caskFile: caskFile,
+                newerVersion: onlineVersion
+            )
         } else {
             await presentVersionUpToDate()
         }
@@ -95,9 +91,9 @@ open class UpdateCheck
 
         if isInteractive {
             await Alert.confirm(
-                title: translations.appIsUpToDateTitle
+                title: Translations.appIsUpToDateTitle
                     .replacingOccurrences(of: "%@", with: Executable.name),
-                description: translations.appIsUpToDateDescription
+                description: Translations.appIsUpToDateDescription
             )
         }
     }
@@ -107,36 +103,39 @@ open class UpdateCheck
 
         if isInteractive {
             await Alert.confirm(
-                title: translations.couldNotRetrieveUpdateTitle,
-                description: translations.couldNotRetrieveUpdateDescription
+                title: Translations.couldNotRetrieveUpdateTitle,
+                description: Translations.couldNotRetrieveUpdateDescription
             )
         }
     }
 
-    private func presentNewerVersionAvailable() async {
+    private func presentNewerVersionAvailable(
+        caskFile: NVCaskFile,
+        newerVersion: AppVersion
+    ) async {
         Log.text("A newer version is available!")
 
         let alert = await NVAlert().withInformation(
-            title: translations.updateAvailableTitle
+            title: Translations.updateAvailableTitle
                 .replacingOccurrences(of: "%@", with: Executable.name),
-            subtitle: translations.updateAvailableSubtitle
+            subtitle: Translations.updateAvailableSubtitle
                 .replacingOccurrences(of: "%@", with: newerVersion.version),
-            description: translations.updateAvailableDescription
+            description: Translations.updateAvailableDescription
         )
         .withPrimary(
-            text: translations.buttonInstall,
+            text: Translations.buttonInstall,
             action: { vc in
                 vc.close(with: .OK)
-                self.launchSelfUpdater()
+                self.launchSelfUpdater(with: caskFile)
             }
         )
-        .withTertiary(text: translations.buttonDismiss, action: { vc in
+        .withTertiary(text: Translations.buttonDismiss, action: { vc in
             vc.close(with: .OK)
         })
 
         if let callback = self.releaseNotesUrlCallback,
-           let url = callback(self.caskFile) {
-            let _ = await alert.withSecondary(text: translations.buttonViewReleaseNotes) { _ in
+           let url = callback(caskFile) {
+            let _ = await alert.withSecondary(text: Translations.buttonViewReleaseNotes) { _ in
                 NSWorkspace.shared.open(url)
             }
         }
@@ -146,7 +145,7 @@ open class UpdateCheck
 
     // MARK: - Functional
 
-    private func launchSelfUpdater() {
+    private func launchSelfUpdater(with caskFile: NVCaskFile) {
         let updater = Bundle.main.resourceURL!.path + "/\(selfUpdaterName)"
 
         system_quiet("mkdir -p \(selfUpdaterPath) 2> /dev/null")
