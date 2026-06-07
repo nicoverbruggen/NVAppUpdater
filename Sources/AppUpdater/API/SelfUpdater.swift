@@ -22,6 +22,14 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     private var bundleIdentifiers: [String]
     private var selfUpdaterPath: String
 
+    /// The hard wall-clock timeout applied when `downloadHardTimeout` is nil.
+    public static let defaultDownloadHardTimeout: TimeInterval = 15 * 60
+
+    /// Optional hard wall-clock timeout (in seconds) for the update download. If
+    /// the whole transfer takes longer than this, it is considered failed. When
+    /// nil, the 15-minute default (`defaultDownloadHardTimeout`) is applied.
+    public var downloadHardTimeout: TimeInterval? = nil
+
     // Determined during the flow of the updater
     private var updaterPath: String = ""
     private var manifestPath: String = ""
@@ -93,21 +101,39 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         // Remove all zips
         system_quiet("rm -rf \(updaterPath)/*.zip")
 
-        // Download the file (and follow redirects + no output on failure)
-        system_quiet("cd \"\(updaterPath)\" && curl \(manifest.url) -fLO --max-time 20")
-
-        // Identify the downloaded file
-        let filename = system("cd \"\(updaterPath)\" && ls | grep .zip")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // Ensure the zip exists
-        if filename.isEmpty {
-            Log.text("The update has not been downloaded. Sadly, that means that \(appName) cannot not updated!")
-            await Alert.upgradeFailure(description: "The update could not be downloaded, or the file was not correctly written to disk. \n\nPlease try again. \n\n(Note that the download will time-out after 20 seconds, so for slow connections it is recommended to manually download the update.)")
+        guard let url = URL(string: manifest.url) else {
+            Log.text("The manifest URL is invalid: \(manifest.url)")
+            await Alert.upgradeFailure(description: "The update URL in the manifest is invalid. Please try searching for updates again in \(appName).")
+            return ""
         }
 
+        let destination = URL(fileURLWithPath: "\(updaterPath)/\(url.lastPathComponent)")
+
+        // Show a progress window, but only if the download is still going after 3 seconds.
+        let progressWindow = await DownloadProgressWindowController(appName: appName)
+        await progressWindow.scheduleAppearance(after: 3)
+
+        let downloader = FileDownloader { written, total in
+            Task { @MainActor in
+                progressWindow.update(written: written, total: total)
+            }
+        }
+
+        // Failure scenario #1: the download itself failed (network, timeout, HTTP error).
+        // This is distinct from a completed download that fails checksum validation below.
+        do {
+            try await downloader.download(from: url, to: destination, hardTimeout: downloadHardTimeout ?? Self.defaultDownloadHardTimeout)
+        } catch {
+            await progressWindow.finish()
+            Log.text("The update could not be downloaded: \(error.localizedDescription)")
+            await Alert.upgradeFailure(description: "The update could not be downloaded.\n\n\(error.localizedDescription)\n\nPlease check your internet connection and try again.")
+            return ""
+        }
+
+        await progressWindow.finish()
+
         // Calculate the checksum for the downloaded file
-        let checksum = system("openssl dgst -sha256 \"\(updaterPath)/\(filename)\" | awk '{print $NF}'")
+        let checksum = system("openssl dgst -sha256 \"\(destination.path)\" | awk '{print $NF}'")
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Compare the checksums
@@ -117,14 +143,14 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         Actual SHA256: \(checksum)
         """)
 
-        // Make sure the checksum matches before we do anything with the file
+        // Failure scenario #2: downloaded fine, but the checksum doesn't match.
         if checksum != manifest.sha256 {
             Log.text("The checksums failed to match. Cancelling!")
             await Alert.upgradeFailure(description: "The downloaded update failed checksum validation. Please try again. If this issue persists, there may be an issue with the server and I do not recommend upgrading.")
         }
 
         // Return the path to the zip
-        return "\(updaterPath)/\(filename)"
+        return destination.path
     }
 
     private func extractAndInstall(zipPath: String) async -> String {
