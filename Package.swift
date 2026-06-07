@@ -10,9 +10,10 @@ let package = Package(
         .library(name: "NVAppUpdater", targets: ["NVAppUpdater"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/nicoverbruggen/NVAlert", from: "2.0.0")
+        .package(url: "https://github.com/nicoverbruggen/NVAlert", from: "2.1.0")
     ],
     targets: [
         .target(name: "NVAppUpdater", dependencies: ["NVAlert"]),
+        .testTarget(name: "NVAppUpdaterTests", dependencies: ["NVAppUpdater"]),
     ]
 )

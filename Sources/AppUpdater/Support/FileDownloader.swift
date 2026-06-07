@@ -48,12 +48,17 @@ final class FileDownloader: NSObject {
     /// Called on a background queue with (bytes written so far, total expected).
     /// `total` is `NSURLSessionTransferSizeUnknown` (-1) when the size is unknown.
     private let onProgress: (_ written: Int64, _ total: Int64) -> Void
+    private let configurationFactory: () -> URLSessionConfiguration
 
     private var continuation: CheckedContinuation<Void, Error>?
     private var destination: URL!
 
-    init(onProgress: @escaping (_ written: Int64, _ total: Int64) -> Void) {
+    init(
+        onProgress: @escaping (_ written: Int64, _ total: Int64) -> Void,
+        configuration: @escaping () -> URLSessionConfiguration = { .ephemeral }
+    ) {
         self.onProgress = onProgress
+        self.configurationFactory = configuration
         super.init()
     }
 
@@ -65,7 +70,7 @@ final class FileDownloader: NSObject {
     ) async throws {
         self.destination = destination
 
-        let config = URLSessionConfiguration.ephemeral
+        let config = configurationFactory()
         // Stall timeout: resets every time new data arrives, so a slow-but-
         // progressing download is not killed.
         config.timeoutIntervalForRequest = stallTimeout

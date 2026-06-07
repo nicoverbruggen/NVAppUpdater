@@ -9,10 +9,24 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
     // MARK: - Requires Configuration
 
-    public init(appName: String, bundleIdentifiers: [String], selfUpdaterPath: String) {
+    /**
+     * Translations that can be overridden.
+     */
+    public struct translations {
+        public static var downloadProgressTitle = "Downloading update, please wait.."
+        public static var downloadProgressWaitingForSize = "Waiting for download size..."
+    }
+
+    public init(
+        appName: String,
+        bundleIdentifiers: [String],
+        selfUpdaterPath: String,
+        downloadProgressImage: NSImage? = nil
+    ) {
         self.appName = appName
         self.bundleIdentifiers = bundleIdentifiers
         self.selfUpdaterPath = selfUpdaterPath
+        self.downloadProgressImage = downloadProgressImage
     }
 
     // MARK: - Regular Updater Flow
@@ -21,6 +35,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     private var appName: String
     private var bundleIdentifiers: [String]
     private var selfUpdaterPath: String
+    private var downloadProgressImage: NSImage?
 
     /// The hard wall-clock timeout applied when `downloadHardTimeout` is nil.
     public static let defaultDownloadHardTimeout: TimeInterval = 15 * 60
@@ -110,7 +125,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         let destination = URL(fileURLWithPath: "\(updaterPath)/\(url.lastPathComponent)")
 
         // Show a progress window, but only if the download is still going after 3 seconds.
-        let progressWindow = await DownloadProgressWindowController(appName: appName)
+        let progressWindow = await DownloadProgressWindowController(appName: appName, image: downloadProgressImage)
         await progressWindow.scheduleAppearance(after: 3)
 
         let downloader = FileDownloader { written, total in
