@@ -9,15 +9,6 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
     // MARK: - Requires Configuration
 
-    /**
-     * Translations that can be overridden.
-     */
-    public struct translations {
-        public static var downloadProgressTitle = "Downloading update, please wait.."
-        public static var downloadProgressWaitingForSize = "Waiting for download size..."
-        public static var invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
-    }
-
     public init(
         appName: String,
         bundleIdentifiers: [String],
@@ -117,18 +108,23 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         // Remove all zips
         system_quiet("rm -rf \(updaterPath)/*.zip")
 
+        // Ensure the manifest is valid
         guard let url = URL(string: manifest.url), url.scheme != nil else {
             Log.text("The manifest URL is invalid: \(manifest.url)")
-            await Alert.upgradeFailure(description: translations.invalidManifestURLDescription.replacingOccurrences(of: "%@", with: appName))
+            await Alert.upgradeFailure(description: translations.invalidManifestURLDescription
+                .replacingOccurrences(of: "%@", with: appName))
             return ""
         }
 
+        // Ensure URL has a filename
         guard !url.lastPathComponent.isEmpty else {
             Log.text("The manifest URL does not point to a downloadable file: \(manifest.url)")
-            await Alert.upgradeFailure(description: translations.invalidManifestURLDescription.replacingOccurrences(of: "%@", with: appName))
+            await Alert.upgradeFailure(description: translations.invalidManifestURLDescription
+                .replacingOccurrences(of: "%@", with: appName))
             return ""
         }
 
+        // Get the destination URL
         let destination = URL(fileURLWithPath: "\(updaterPath)/\(url.lastPathComponent)")
 
         // Show a progress window, but only if the download is still going after 3 seconds.
