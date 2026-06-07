@@ -9,24 +9,11 @@ import Foundation
  The distinct ways a download can fail. This lets the caller tell a failed
  *download* apart from a completed download that fails checksum validation.
  */
-enum DownloadError: LocalizedError {
+enum DownloadError: Error {
     case timedOut
     case transport(Error)
     case httpStatus(Int)
     case fileSystem(Error)
-
-    var errorDescription: String? {
-        switch self {
-        case .timedOut:
-            return "The download timed out."
-        case .transport(let error):
-            return error.localizedDescription
-        case .httpStatus(let code):
-            return "The server returned an unexpected response (status \(code))."
-        case .fileSystem(let error):
-            return "The downloaded file could not be saved: \(error.localizedDescription)"
-        }
-    }
 }
 
 /**

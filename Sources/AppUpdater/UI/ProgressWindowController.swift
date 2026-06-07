@@ -16,6 +16,7 @@ final class ProgressWindowController {
 
     private let title: String
     private let waitingForSizeText: String
+    private let byteCountFormat: String
     private let byteProgressStepIndex: Int?
     private let image: NSImage?
     private var window: NSWindow?
@@ -25,12 +26,14 @@ final class ProgressWindowController {
         title: String,
         stepTitles: [String],
         waitingForSizeText: String,
+        byteCountFormat: String = SelfUpdater.Translations.downloadProgressByteCountFormat,
         byteProgressStepIndex: Int? = nil,
         image: NSImage? = nil
     ) {
         self.state = ProgressWindowState(stepTitles: stepTitles)
         self.title = title
         self.waitingForSizeText = waitingForSizeText
+        self.byteCountFormat = byteCountFormat
         self.byteProgressStepIndex = byteProgressStepIndex
         self.image = image
     }
@@ -71,6 +74,7 @@ final class ProgressWindowController {
             progress: state,
             title: title,
             waitingForSizeText: waitingForSizeText,
+            byteCountFormat: byteCountFormat,
             byteProgressStepIndex: byteProgressStepIndex,
             contentTopOffset: contentTopOffset,
             image: image ?? NSApp.applicationIconImage

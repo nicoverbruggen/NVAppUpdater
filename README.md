@@ -109,6 +109,32 @@ _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
 
 You must then make sure that this app is included as a sub-app for the main target. The Self-Updater target needs to be referenced correctly as part of the `selfUpdaterName` parameter of `UpdateCheck`, or the `UpdateCheck` won't be able to launch the updater binary itself.
 
+### Progress window display mode
+
+By default, the self-updater only shows the progress window when the update takes longer than 3 seconds. This avoids showing a window for very fast updates.
+
+If you always want to show the progress window, set `progressWindowDisplayMode` when creating the `SelfUpdater`:
+
+```swift
+let delegate = SelfUpdater(
+    appName: "My App",
+    bundleIdentifiers: ["com.example.my-app"],
+    selfUpdaterPath: "~/.config/com.example.my-app/updater",
+    progressWindowDisplayMode: .always
+)
+```
+
+You can also customize the delay:
+
+```swift
+let delegate = SelfUpdater(
+    appName: "My App",
+    bundleIdentifiers: ["com.example.my-app"],
+    selfUpdaterPath: "~/.config/com.example.my-app/updater",
+    progressWindowDisplayMode: .whenUpdatingTakesLongerThan(5)
+)
+```
+
 ## Customizing text
 
 The default alert and progress window text can be overridden before you run an update check or launch the self-updater. This is useful if you have an app with localization.
@@ -122,6 +148,7 @@ UpdateCheck.Translations.updateAvailableTitle = "A new version of %@ is ready."
 UpdateCheck.Translations.updateAvailableSubtitle = "Version %@ can now be installed."
 UpdateCheck.Translations.updateAvailableDescription = "Would you like to install this update now?"
 UpdateCheck.Translations.buttonInstall = "Upgrade"
+UpdateCheck.Translations.buttonOK = "OK"
 UpdateCheck.Translations.buttonDismiss = "Not Now"
 UpdateCheck.Translations.buttonViewReleaseNotes = "Release Notes"
 ```
@@ -138,5 +165,21 @@ SelfUpdater.Translations.progressStepDownloadingUpdate = "Downloading update"
 SelfUpdater.Translations.progressStepExtractingUpdate = "Extracting update"
 SelfUpdater.Translations.progressStepRestartingApp = "Restarting %@"
 SelfUpdater.Translations.downloadProgressWaitingForSize = "Preparing download..."
+SelfUpdater.Translations.downloadProgressByteCountFormat = "%@ of %@"
 SelfUpdater.Translations.invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
+SelfUpdater.Translations.missingManifestDescription = "The manifest file for a potential update was not found. Please try searching for updates again in %@."
+SelfUpdater.Translations.checksumValidationFailedDescription = "The downloaded update failed checksum validation. Please try again. If this issue persists, there may be an issue with the server and I do not recommend upgrading."
+SelfUpdater.Translations.upgradeFailureTitle = "%@ could not be updated."
+SelfUpdater.Translations.buttonOK = "OK"
+SelfUpdater.Translations.downloadFailedDescription = "The update could not be downloaded.\n\n%@\n\nPlease check your internet connection and try again."
+SelfUpdater.Translations.downloadTimedOutDescription = "The download timed out."
+SelfUpdater.Translations.downloadUnexpectedStatusDescription = "The server returned an unexpected response (status %@)."
+SelfUpdater.Translations.downloadFileSaveFailedDescription = "The downloaded file could not be saved: %@"
+SelfUpdater.Translations.updaterDirectoryMissingDescription = "The updater directory is missing. The automatic updater will quit. Make sure that `%@` is writeable."
+SelfUpdater.Translations.extractionFailedDescription = "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `%@` is writeable."
+SelfUpdater.Translations.terminationFailedDescription = "%@ could not be quit before installing the update. Please quit the app manually and try again."
 ```
+
+## Upgrading
+
+See [UPGRADING.md](UPGRADING.md) for the v2 to v3 upgrade guide.

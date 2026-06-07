@@ -7,19 +7,76 @@ import Cocoa
 
 open class SelfUpdater: NSObject, NSApplicationDelegate {
 
+    // MARK: - Types
+
     public enum ProgressWindowDisplayMode {
+        /**
+         * Show the progress window as soon as the update starts.
+         */
         case always
+
+        /**
+         * Delay the progress window and only show it if the update is still running.
+         *
+         * This is useful when quick updates should complete silently, while slower
+         * updates still give the user visible feedback.
+         */
         case whenUpdatingTakesLongerThan(TimeInterval)
     }
 
-    enum ProgressStep: Int, CaseIterable {
-        case downloadingUpdate
-        case extractingUpdate
-        case restartingApplication
-    }
+    // MARK: - Defaults
 
-    // MARK: - Requires Configuration
+    /**
+     * The hard wall-clock timeout applied when `downloadHardTimeout` is nil.
+     */
+    public static let defaultDownloadHardTimeout: TimeInterval = 15 * 60
 
+    /**
+     * The default delay before the progress window appears for longer downloads.
+     */
+    public static let defaultProgressWindowDelay: TimeInterval = 3
+
+    // MARK: - Configuration
+
+    var appName: String
+    var bundleIdentifiers: [String]
+    var selfUpdaterPath: String
+    var downloadProgressImage: NSImage?
+
+    public var progressWindowDisplayMode: ProgressWindowDisplayMode
+
+    /**
+     * Optional hard wall-clock timeout (in seconds) for the update download. If
+     * the whole transfer takes longer than this, it is considered failed. When
+     * nil, the 15-minute default (`defaultDownloadHardTimeout`) is applied.
+     */
+    public var downloadHardTimeout: TimeInterval? = nil
+
+    /**
+     * Creates a self-updater delegate for the helper app that performs the update.
+     *
+     * The self-updater is expected to run as a separate `.app` bundle embedded in
+     * the main application. `UpdateCheck` writes an `update.json` manifest into
+     * `selfUpdaterPath`, launches this helper app, and this delegate then downloads,
+     * validates, extracts, installs, and relaunches the updated app.
+     *
+     * - Parameters:
+     *   - appName: The display name of the app being updated. This is used in alerts
+     *     and progress-window text.
+     *
+     *   - bundleIdentifiers: One or more bundle identifiers for running instances of
+     *     the app being updated. These are terminated only after the downloaded update
+     *     has been extracted and validated.
+     *
+     *   - selfUpdaterPath: A writable directory shared between `UpdateCheck` and the
+     *     helper updater app. `~` is expanded to the current user's home directory.
+     *
+     *   - downloadProgressImage: An optional image to show in the progress window.
+     *     If not set, defaults to the icon of the updater app.
+     *
+     *   - progressWindowDisplayMode: Controls whether the progress window is shown
+     *     immediately or only after the update has taken longer than a configured delay.
+     */
     public init(
         appName: String,
         bundleIdentifiers: [String],
@@ -34,30 +91,12 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         self.progressWindowDisplayMode = progressWindowDisplayMode
     }
 
-    // MARK: - Regular Updater Flow
+    // MARK: - Runtime State
 
-    // Set by the user
-    private var appName: String
-    private var bundleIdentifiers: [String]
-    private var selfUpdaterPath: String
-    private var downloadProgressImage: NSImage?
+    var updaterPath: String = ""
+    var manifestPath: String = ""
 
-    public var progressWindowDisplayMode: ProgressWindowDisplayMode
-
-    /// The hard wall-clock timeout applied when `downloadHardTimeout` is nil.
-    public static let defaultDownloadHardTimeout: TimeInterval = 15 * 60
-
-    /// The default delay before the progress window appears for longer downloads.
-    public static let defaultProgressWindowDelay: TimeInterval = 3
-
-    /// Optional hard wall-clock timeout (in seconds) for the update download. If
-    /// the whole transfer takes longer than this, it is considered failed. When
-    /// nil, the 15-minute default (`defaultDownloadHardTimeout`) is applied.
-    public var downloadHardTimeout: TimeInterval? = nil
-
-    // Determined during the flow of the updater
-    private var updaterPath: String = ""
-    private var manifestPath: String = ""
+    // MARK: - NSApplicationDelegate
 
     public func applicationDidFinishLaunching(_ aNotification: Notification) {
         Alert.appName = self.appName
@@ -72,6 +111,8 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         return false
     }
 
+    // MARK: - Update Flow
+
     func installUpdate() async {
         Log.text("===========================================")
         Log.text("\(Executable.name), version \(Executable.fullVersion)")
@@ -85,260 +126,45 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
         Log.text("Updater directory set to: \(self.updaterPath)")
 
+        // Load the path for the location of the manifest
         self.manifestPath = "\(updaterPath)/update.json"
 
-        // Fetch the manifest on the local filesystem
+        // Update check should have written this manifest
         guard let manifest = await parseManifest() else { return }
 
-        guard let downloadURL = await downloadURL(from: manifest) else { return }
+        // Parse and validate the download URL
+        guard let downloadURL = await validateDownloadUrl(from: manifest) else { return }
 
+        // Show the progress window, if relevant
         let progressWindow = await makeProgressWindow()
         await show(progressWindow)
 
         // Download the latest file
-        let zipPath = await download(
-            manifest,
-            from: downloadURL,
-            progressWindow: progressWindow
-        )
+        let zipPath = await download(manifest, from: downloadURL, progressWindow: progressWindow)
         guard !zipPath.isEmpty else { return }
 
-        // Extract and validate the downloaded app before touching the running app.
+        // Extract and validate the downloaded app before touching the running app
         await progressWindow.advance(toStepAt: ProgressStep.extractingUpdate.rawValue)
         let extractedAppPath = await extractAndValidate(zipPath: zipPath, progressWindow: progressWindow)
         guard !extractedAppPath.isEmpty else { return }
 
-        // Once the update is ready, terminate the app and replace it.
+        // Once the update is ready, terminate the app and replace it
         await progressWindow.advance(toStepAt: ProgressStep.restartingApplication.rawValue)
-        await LaunchControl.terminateApplications(bundleIds: self.bundleIdentifiers)
+        let didTerminate = await LaunchControl.terminateApplications(bundleIds: self.bundleIdentifiers)
+        guard didTerminate else {
+            await progressWindow.finish()
+            await Alert.upgradeFailure(description: Translations.terminationFailedDescription
+                .replacingOccurrences(of: "%@", with: appName))
+            return
+        }
+
         let appPath = await installExtractedApp(at: extractedAppPath, zipPath: zipPath)
 
-        // Restart app, this will also close the updater
+        // Restarting the app completes the visible flow; the helper updater then exits
         _ = await LaunchControl.startApplication(at: appPath)
 
+        // Terminate the self-updater!
         await progressWindow.finish()
         exit(1)
-    }
-
-    private func parseManifest() async -> ReleaseManifest? {
-        // Read out the correct information from the manifest JSON
-        Log.text("Checking manifest file at \(manifestPath)...")
-
-        do {
-            let manifestText = try String(contentsOfFile: manifestPath)
-            return try JSONDecoder().decode(ReleaseManifest.self, from: Data(manifestText.utf8))
-        } catch {
-            Log.text("Parsing the manifest failed (or the manifest file doesn't exist)!")
-            await Alert.upgradeFailure(description: "The manifest file for a potential update was not found. Please try searching for updates again in \(appName).")
-        }
-
-        return nil
-    }
-
-    private func downloadURL(from manifest: ReleaseManifest) async -> URL? {
-        // Ensure the manifest is valid
-        guard let url = URL(string: manifest.url), url.scheme != nil else {
-            Log.text("The manifest URL is invalid: \(manifest.url)")
-            await Alert.upgradeFailure(description: Translations.invalidManifestURLDescription
-                .replacingOccurrences(of: "%@", with: appName))
-            return nil
-        }
-
-        // Ensure URL has a filename
-        guard !url.lastPathComponent.isEmpty else {
-            Log.text("The manifest URL does not point to a downloadable file: \(manifest.url)")
-            await Alert.upgradeFailure(description: Translations.invalidManifestURLDescription
-                .replacingOccurrences(of: "%@", with: appName))
-            return nil
-        }
-
-        return url
-    }
-
-    private func download(
-        _ manifest: ReleaseManifest,
-        from url: URL,
-        progressWindow: ProgressWindowController
-    ) async -> String {
-        // Remove all zips
-        system_quiet("rm -rf \(updaterPath)/*.zip")
-
-        // Get the destination URL
-        let destination = URL(fileURLWithPath: "\(updaterPath)/\(url.lastPathComponent)")
-
-        let downloader = FileDownloader { written, total in
-            Task { @MainActor in
-                progressWindow.update(written: written, total: total)
-            }
-        }
-
-        // Failure scenario #1: the download itself failed (network, timeout, HTTP error).
-        // This is distinct from a completed download that fails checksum validation below.
-        do {
-            try await downloader.download(from: url, to: destination, hardTimeout: downloadHardTimeout ?? Self.defaultDownloadHardTimeout)
-        } catch {
-            await progressWindow.finish()
-            Log.text("The update could not be downloaded: \(error.localizedDescription)")
-            await Alert.upgradeFailure(description: "The update could not be downloaded.\n\n\(error.localizedDescription)\n\nPlease check your internet connection and try again.")
-            return ""
-        }
-
-        // Calculate the checksum for the downloaded file
-        let checksum = system("openssl dgst -sha256 \"\(destination.path)\" | awk '{print $NF}'")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !checksum.isEmpty else {
-            Log.text("The update checksum could not be calculated.")
-            await progressWindow.finish()
-            await Alert.upgradeFailure(description: "The downloaded update could not be validated. Please try again.")
-            return ""
-        }
-
-        // Compare the checksums
-        Log.text("""
-        Comparing checksums...
-        Expected SHA256: \(manifest.sha256)
-        Actual SHA256: \(checksum)
-        """)
-
-        // Failure scenario #2: downloaded fine, but the checksum doesn't match.
-        if checksum != manifest.sha256 {
-            Log.text("The checksums failed to match. Cancelling!")
-            await progressWindow.finish()
-            await Alert.upgradeFailure(description: "The downloaded update failed checksum validation. Please try again. If this issue persists, there may be an issue with the server and I do not recommend upgrading.")
-            return ""
-        }
-
-        // Return the path to the zip
-        return destination.path
-    }
-
-    @MainActor
-    private func makeProgressWindow() -> ProgressWindowController {
-        ProgressWindowController(
-            title: Self.formatted(Translations.progressWindowTitle, appName: appName),
-            stepTitles: Self.progressStepTitles(appName: appName),
-            waitingForSizeText: Translations.downloadProgressWaitingForSize,
-            byteProgressStepIndex: ProgressStep.downloadingUpdate.rawValue,
-            image: downloadProgressImage
-        )
-    }
-
-    static func progressStepTitles(appName: String) -> [String] {
-        [
-            Translations.progressStepDownloadingUpdate,
-            Translations.progressStepExtractingUpdate,
-            formatted(Translations.progressStepRestartingApp, appName: appName)
-        ]
-    }
-
-    private static func formatted(_ string: String, appName: String) -> String {
-        string.replacingOccurrences(of: "%@", with: appName)
-    }
-
-    private func show(_ progressWindow: ProgressWindowController) async {
-        switch progressWindowDisplayMode {
-        case .always:
-            await progressWindow.show()
-        case .whenUpdatingTakesLongerThan(let delay):
-            await progressWindow.scheduleAppearance(after: delay)
-        }
-    }
-
-    private func extractAndValidate(
-        zipPath: String,
-        progressWindow: ProgressWindowController
-    ) async -> String {
-        // Remove the directory that will contain the extracted update
-        system_quiet("rm -rf \"\(updaterPath)/extracted\"")
-
-        // Recreate the directory where we will unzip the .app file
-        system_quiet("mkdir -p \"\(updaterPath)/extracted\"")
-
-        // Make sure the updater directory exists
-        var isDirectory: ObjCBool = true
-        if !FileManager.default.fileExists(atPath: "\(updaterPath)/extracted", isDirectory: &isDirectory)
-            || !isDirectory.boolValue {
-            await progressWindow.finish()
-            await Alert.upgradeFailure(description: "The updater directory is missing. The automatic updater will quit. Make sure that `\(selfUpdaterPath)` is writeable.")
-            return ""
-        }
-
-        // Unzip the file
-        system_quiet("unzip \"\(zipPath)\" -d \"\(updaterPath)/extracted\"")
-
-        // Find the .app file
-        guard let appURL = extractedAppURL() else {
-            await progressWindow.finish()
-            await Alert.upgradeFailure(description: "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `\(selfUpdaterPath)` is writeable.")
-            return ""
-        }
-
-        Log.text("Finished extracting: \(appURL.path)")
-
-        // Make sure the file was extracted
-        guard isValidApplication(at: appURL) else {
-            await progressWindow.finish()
-            await Alert.upgradeFailure(description: "The downloaded file could not be extracted. The automatic updater will quit. Make sure that `\(selfUpdaterPath)` is writeable.")
-            return ""
-        }
-
-        return appURL.path
-    }
-
-    private func installExtractedApp(at extractedAppPath: String, zipPath: String) async -> String {
-        let app = URL(fileURLWithPath: extractedAppPath).lastPathComponent
-
-        // Remove the original app
-        Log.text("Removing \(app) before replacing...")
-        system_quiet("rm -rf \"/Applications/\(app)\"")
-
-        // Move the new app in place
-        system_quiet("mv \"\(extractedAppPath)\" \"/Applications/\(app)\"")
-
-        // Remove the zip
-        system_quiet("rm \"\(zipPath)\"")
-
-        // Remove the manifest
-        system_quiet("rm \"\(manifestPath)\"")
-
-        // Write a file that is only written when we upgraded successfully
-        system_quiet("touch \"\(updaterPath)/upgrade.success\"")
-
-        // Return the new location of the app
-        return "/Applications/\(app)"
-    }
-
-    private func extractedAppURL() -> URL? {
-        let extractedURL = URL(fileURLWithPath: "\(updaterPath)/extracted", isDirectory: true)
-
-        guard let contents = try? FileManager.default.contentsOfDirectory(
-            at: extractedURL,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles]
-        ) else {
-            return nil
-        }
-
-        return contents.first { url in
-            guard url.pathExtension == "app",
-                  let values = try? url.resourceValues(forKeys: [.isDirectoryKey]) else {
-                return false
-            }
-
-            return values.isDirectory == true
-        }
-    }
-
-    private func isValidApplication(at appURL: URL) -> Bool {
-        guard let bundle = Bundle(url: appURL),
-              let executable = bundle.infoDictionary?["CFBundleExecutable"] as? String,
-              !executable.isEmpty else {
-            return false
-        }
-
-        return FileManager.default.fileExists(
-            atPath: appURL.appendingPathComponent("Contents/MacOS/\(executable)").path
-        )
     }
 }

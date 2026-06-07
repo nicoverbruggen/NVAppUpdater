@@ -113,6 +113,24 @@ final class ProgressWindowTests: XCTestCase {
         XCTAssertFalse(harness.hasVisibleWindow)
     }
 
+    func testProgressWindowKeepsStableHeightAcrossSteps() async throws {
+        let harness = ProgressWindowHarness()
+
+        harness.showWindow()
+        harness.update(written: 50 * 1024 * 1024, total: 100 * 1024 * 1024)
+        let downloadHeight = try XCTUnwrap(harness.windowHeight)
+
+        harness.advance(to: .extractingUpdate)
+        let extractionHeight = try XCTUnwrap(harness.windowHeight)
+        XCTAssertEqual(extractionHeight, downloadHeight, accuracy: 1)
+
+        harness.advance(to: .restartingApplication)
+        let restartHeight = try XCTUnwrap(harness.windowHeight)
+        XCTAssertEqual(restartHeight, downloadHeight, accuracy: 1)
+
+        harness.finish()
+    }
+
     func testProgressWindowWaitsForScheduledDelayBeforeAppearing() async throws {
         let harness = ProgressWindowHarness()
 
@@ -176,6 +194,10 @@ private final class ProgressWindowHarness {
 
     var contentTopOffset: CGFloat {
         controller.contentTopOffset
+    }
+
+    var windowHeight: CGFloat? {
+        visibleWindows.first?.frame.height
     }
 
     init(image: NSImage? = nil) {

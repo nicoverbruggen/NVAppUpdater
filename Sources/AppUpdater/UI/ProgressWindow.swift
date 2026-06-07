@@ -10,9 +10,12 @@ struct ProgressWindow: View {
     @ObservedObject var progress: ProgressWindowState
     let title: String
     let waitingForSizeText: String
+    let byteCountFormat: String
     let byteProgressStepIndex: Int?
     let contentTopOffset: CGFloat
     let image: NSImage
+
+    private let progressAreaHeight: CGFloat = 34
 
     private static let formatter: ByteCountFormatter = {
         let formatter = ByteCountFormatter()
@@ -39,17 +42,23 @@ struct ProgressWindow: View {
                         .truncationMode(.middle)
                 }
 
-                if byteProgressStepIndex == progress.currentStepIndex {
-                    byteProgress
-                } else {
-                    ProgressView()
-                        .progressViewStyle(LinearProgressViewStyle())
-                }
+                progressContent
+                    .frame(minHeight: progressAreaHeight, alignment: .top)
             }
         }
         .padding(24)
         .padding(.top, -contentTopOffset)
         .frame(width: 480)
+    }
+
+    @ViewBuilder
+    private var progressContent: some View {
+        if byteProgressStepIndex == progress.currentStepIndex {
+            byteProgress
+        } else {
+            ProgressView()
+                .progressViewStyle(LinearProgressViewStyle())
+        }
     }
 
     @ViewBuilder
@@ -65,7 +74,11 @@ struct ProgressWindow: View {
                 ProgressView(value: progress.fractionCompleted)
                     .progressViewStyle(LinearProgressViewStyle())
                 HStack(alignment: .firstTextBaseline) {
-                    Text("\(Self.formatter.string(fromByteCount: progress.bytesWritten)) of \(Self.formatter.string(fromByteCount: progress.totalBytes))")
+                    Text(String(
+                        format: byteCountFormat,
+                        Self.formatter.string(fromByteCount: progress.bytesWritten),
+                        Self.formatter.string(fromByteCount: progress.totalBytes)
+                    ))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     Spacer()

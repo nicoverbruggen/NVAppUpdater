@@ -12,7 +12,8 @@ struct ProgressWindow_Previews: PreviewProvider {
         ProgressWindow(
             progress: previewProgress,
             title: "Updating PHP Monitor",
-            waitingForSizeText: "Waiting for download size...",
+            waitingForSizeText: SelfUpdater.Translations.downloadProgressWaitingForSize,
+            byteCountFormat: SelfUpdater.Translations.downloadProgressByteCountFormat,
             byteProgressStepIndex: 0,
             contentTopOffset: 0,
             image: NSApp.applicationIconImage

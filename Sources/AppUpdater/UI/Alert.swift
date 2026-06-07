@@ -14,12 +14,14 @@ class Alert {
     @MainActor
     public static func upgradeFailure(description: String, shouldExit: Bool = true) async {
         await confirm(
-            title: "\(Alert.appName) could not be updated.",
+            title: SelfUpdater.Translations.upgradeFailureTitle
+                .replacingOccurrences(of: "%@", with: Alert.appName),
             description: description,
+            buttonTitle: SelfUpdater.Translations.buttonOK,
             alertStyle: .critical,
-            callback: {
+            callback: shouldExit ? {
                 exit(0)
-            }
+            } : nil
         )
     }
 
@@ -29,18 +31,17 @@ class Alert {
     public static func confirm(
         title: String,
         description: String,
+        buttonTitle: String,
         alertStyle: NSAlert.Style = .informational,
         callback: (() -> Void)? = nil
     ) async {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = description
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: buttonTitle)
         alert.alertStyle = alertStyle
         alert.runModal()
-        if callback != nil {
-            callback!()
-        }
+        callback?()
     }
 
     @MainActor
@@ -60,4 +61,3 @@ class Alert {
         return alert.runModal()
     }
 }
-

@@ -45,9 +45,11 @@ open class UpdateCheck {
     }
 
     /**
-     * Resolves the URL for the release notes using the given callback.
+     * Registers a callback that resolves release notes for the update prompt.
      *
-     * You will be able to use the retrieved CaskFile which you may need in order to determine the complete URL.
+     * The callback receives the parsed Cask file, so callers can build a release-notes
+     * URL from the version, channel, or any other information encoded in that file.
+     * Return `nil` to omit the release-notes button.
      */
     public func resolvingReleaseNotes(with callback: @escaping (NVCaskFile) -> URL?) -> Self {
         self.releaseNotesUrlCallback = callback
@@ -55,7 +57,11 @@ open class UpdateCheck {
     }
 
     /**
-     * Perform the check for a new version.
+     * Performs the update check and presents UI when required.
+     *
+     * This method should usually be called from the main app, not from the helper
+     * updater app. It does not install updates directly; installation is handed off
+     * to the embedded self-updater.
      */
     public func perform() async {
         guard let caskFile = NVCaskFile.from(url: caskUrl) else {
@@ -93,7 +99,8 @@ open class UpdateCheck {
             await Alert.confirm(
                 title: Translations.appIsUpToDateTitle
                     .replacingOccurrences(of: "%@", with: Executable.name),
-                description: Translations.appIsUpToDateDescription
+                description: Translations.appIsUpToDateDescription,
+                buttonTitle: Translations.buttonOK
             )
         }
     }
@@ -104,7 +111,8 @@ open class UpdateCheck {
         if isInteractive {
             await Alert.confirm(
                 title: Translations.couldNotRetrieveUpdateTitle,
-                description: Translations.couldNotRetrieveUpdateDescription
+                description: Translations.couldNotRetrieveUpdateDescription,
+                buttonTitle: Translations.buttonOK
             )
         }
     }
@@ -148,6 +156,8 @@ open class UpdateCheck {
     private func launchSelfUpdater(with caskFile: NVCaskFile) {
         let updater = Bundle.main.resourceURL!.path + "/\(selfUpdaterName)"
 
+        // Keep this handoff shell-backed. This is the path that has historically
+        // behaved correctly for embedded updater apps and macOS filesystem prompts.
         system_quiet("mkdir -p \(selfUpdaterPath) 2> /dev/null")
 
         let updaterDirectory = selfUpdaterPath
@@ -155,6 +165,8 @@ open class UpdateCheck {
 
         system_quiet("cp -R \"\(updater)\" \"\(updaterDirectory)/\(selfUpdaterName)\"")
 
+        // The helper app reads this local manifest after launch. The main app does
+        // not download or install the update itself.
         try! "{ \"url\": \"\(caskFile.url)\", \"sha256\": \"\(caskFile.sha256)\" }".write(
             to: URL(fileURLWithPath: "\(updaterDirectory)/update.json"),
             atomically: true,
