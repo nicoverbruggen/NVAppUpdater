@@ -10,7 +10,6 @@ import Foundation
  *download* apart from a completed download that fails checksum validation.
  */
 enum DownloadError: LocalizedError {
-    case invalidURL
     case timedOut
     case transport(Error)
     case httpStatus(Int)
@@ -18,8 +17,6 @@ enum DownloadError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL:
-            return "The update URL in the manifest is invalid."
         case .timedOut:
             return "The download timed out."
         case .transport(let error):

@@ -13,10 +13,16 @@ final class UpdateCheckTranslationTests: XCTestCase {
 
     func testSelfUpdaterTranslationsCanBeOverridden() {
         let original = SelfUpdater.translations.downloadProgressTitle
-        defer { SelfUpdater.translations.downloadProgressTitle = original }
+        let originalManifestURLDescription = SelfUpdater.translations.invalidManifestURLDescription
+        defer {
+            SelfUpdater.translations.downloadProgressTitle = original
+            SelfUpdater.translations.invalidManifestURLDescription = originalManifestURLDescription
+        }
 
         SelfUpdater.translations.downloadProgressTitle = "Downloading..."
+        SelfUpdater.translations.invalidManifestURLDescription = "Invalid URL for %@."
 
         XCTAssertEqual(SelfUpdater.translations.downloadProgressTitle, "Downloading...")
+        XCTAssertEqual(SelfUpdater.translations.invalidManifestURLDescription, "Invalid URL for %@.")
     }
 }

@@ -15,6 +15,7 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     public struct translations {
         public static var downloadProgressTitle = "Downloading update, please wait.."
         public static var downloadProgressWaitingForSize = "Waiting for download size..."
+        public static var invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
     }
 
     public init(
@@ -116,9 +117,15 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         // Remove all zips
         system_quiet("rm -rf \(updaterPath)/*.zip")
 
-        guard let url = URL(string: manifest.url) else {
+        guard let url = URL(string: manifest.url), url.scheme != nil else {
             Log.text("The manifest URL is invalid: \(manifest.url)")
-            await Alert.upgradeFailure(description: "The update URL in the manifest is invalid. Please try searching for updates again in \(appName).")
+            await Alert.upgradeFailure(description: translations.invalidManifestURLDescription.replacingOccurrences(of: "%@", with: appName))
+            return ""
+        }
+
+        guard !url.lastPathComponent.isEmpty else {
+            Log.text("The manifest URL does not point to a downloadable file: \(manifest.url)")
+            await Alert.upgradeFailure(description: translations.invalidManifestURLDescription.replacingOccurrences(of: "%@", with: appName))
             return ""
         }
 

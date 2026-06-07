@@ -107,4 +107,33 @@ NSApplication.shared.delegate = delegate
 _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
 ```
 
-You must then make sure that this app is included as a sub-app for the main target. It needs to be referenced correctly as part of the `selfUpdaterName` parameter of `UpdateCheck` (see the previous section).
+You must then make sure that this app is included as a sub-app for the main target. The Self-Updater target needs to be referenced correctly as part of the `selfUpdaterName` parameter of `UpdateCheck`, or the `UpdateCheck` won't be able to launch the updater binary itself.
+
+## Customizing text
+
+The default alert and progress window text can be overridden before you run an update check or launch the self-updater. This is useful if you have an app with localization.
+
+### Checking for updates
+
+Use `UpdateCheck.translations` for the main app prompts:
+
+```swift
+UpdateCheck.translations.updateAvailableTitle = "A new version of %@ is ready."
+UpdateCheck.translations.updateAvailableSubtitle = "Version %@ can now be installed."
+UpdateCheck.translations.updateAvailableDescription = "Would you like to install this update now?"
+UpdateCheck.translations.buttonInstall = "Upgrade"
+UpdateCheck.translations.buttonDismiss = "Not Now"
+UpdateCheck.translations.buttonViewReleaseNotes = "Release Notes"
+```
+
+Strings that contain `%@` will substitute the application name or version, depending on the string.
+
+### Updater progress window and errors
+
+Use `SelfUpdater.translations` for the self-updater progress window and manifest failure text:
+
+```swift
+SelfUpdater.translations.downloadProgressTitle = "Downloading update..."
+SelfUpdater.translations.downloadProgressWaitingForSize = "Preparing download..."
+SelfUpdater.translations.invalidManifestURLDescription = "The update manifest contains an invalid download URL. Please try searching for updates again in %@."
+```
