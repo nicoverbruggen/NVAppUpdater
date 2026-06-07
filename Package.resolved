@@ -1,13 +1,13 @@
 {
-  "originHash" : "7923969e58fdf4b069ff89f843ba2160f0590dd30de0375022fd8869ef14a17a",
+  "originHash" : "9b4ccb40f5b67c615c9622a94fa0307993d0315f97ea72fdd8d171335e27cd64",
   "pins" : [
     {
       "identity" : "nvalert",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/nicoverbruggen/NVAlert",
       "state" : {
-        "revision" : "54400ed5cc7d8b0c1612d276c1f48dc21b7f4723",
-        "version" : "2.1.0"
+        "revision" : "8b1823a29708e51548e9e8e54526afb136da51b3",
+        "version" : "2.2.0"
       }
     }
   ],
