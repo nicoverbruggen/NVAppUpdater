@@ -65,16 +65,10 @@ let delegate = SelfUpdater(
 )
 ```
 
-You can also pass `downloadProgressImage` to display a custom image in the progress window.
-
-## Download Timeout
-
-Downloads have a hard timeout. By default this is 15 minutes, but you can override it on the self-updater delegate:
-
-```swift
-delegate.downloadHardTimeout = 30 * 60
-```
+You can also pass `downloadProgressImage` to display a custom image in the progress window and customize the timeout for the update.
 
 ## Manifest Format
 
-No manifest changes are required when upgrading from v2 to v3. The package still reads the same Homebrew-style Cask file and still uses the same local `update.json` handoff between the main app and the self-updater.
+No manifest changes are required when upgrading from v2 to v3. 
+
+The package still reads the same Homebrew-style Cask file and still uses the same local `update.json` handoff between the main app and the self-updater.

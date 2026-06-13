@@ -73,7 +73,7 @@ extension SelfUpdater {
         // Failure scenario #1: the download itself failed (network, timeout, HTTP error).
         // This is distinct from a completed download that fails checksum validation below.
         do {
-            try await downloader.download(from: url, to: destination, hardTimeout: downloadHardTimeout ?? Self.defaultDownloadHardTimeout)
+            try await downloader.download(from: url, to: destination, hardTimeout: downloadTimeout ?? Self.defaultDownloadTimeout)
         } catch {
             await progressWindow.finish()
             Log.text("The update could not be downloaded: \(downloadFailureDescription(for: error))")

@@ -135,6 +135,22 @@ let delegate = SelfUpdater(
 )
 ```
 
+### Download timeout
+
+By default, the updater will timeout after 15 minutes if the update hasn't finished downloading. 
+
+If you'd like to customize this value, you can do it in the initializer:
+
+```swift
+let delegate = SelfUpdater(
+    appName: "My App",
+    bundleIdentifiers: ["com.example.my-app"],
+    selfUpdaterPath: "~/.config/com.example.my-app/updater",
+    progressWindowDisplayMode: .whenUpdatingTakesLongerThan(5),
+    downloadTimeout: 5 * 60 // timeout after 5 minutes
+)
+```
+
 ## Customizing text
 
 The default alert and progress window text can be overridden before you run an update check or launch the self-updater. This is useful if you have an app with localization.

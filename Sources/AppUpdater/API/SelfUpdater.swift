@@ -27,9 +27,9 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     // MARK: - Defaults
 
     /**
-     * The hard wall-clock timeout applied when `downloadHardTimeout` is nil.
+     * The hard wall-clock timeout applied when `downloadTimeout` is nil.
      */
-    public static let defaultDownloadHardTimeout: TimeInterval = 15 * 60
+    public static let defaultDownloadTimeout: TimeInterval = 15 * 60
 
     /**
      * The default delay before the progress window appears for longer downloads.
@@ -42,15 +42,8 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
     var bundleIdentifiers: [String]
     var selfUpdaterPath: String
     var downloadProgressImage: NSImage?
-
-    public var progressWindowDisplayMode: ProgressWindowDisplayMode
-
-    /**
-     * Optional hard wall-clock timeout (in seconds) for the update download. If
-     * the whole transfer takes longer than this, it is considered failed. When
-     * nil, the 15-minute default (`defaultDownloadHardTimeout`) is applied.
-     */
-    public var downloadHardTimeout: TimeInterval? = nil
+    var progressWindowDisplayMode: ProgressWindowDisplayMode
+    var downloadTimeout: TimeInterval?
 
     /**
      * Creates a self-updater delegate for the helper app that performs the update.
@@ -76,19 +69,25 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
      *
      *   - progressWindowDisplayMode: Controls whether the progress window is shown
      *     immediately or only after the update has taken longer than a configured delay.
+     *
+     *   - downloadTimeout: Optional hard wall-clock timeout (in seconds) for the update
+     *     download. If the whole transfer takes longer than this, it is considered failed.
+     *     When nil, the 15-minute default (`defaultDownloadTimeout`) is applied.
      */
     public init(
         appName: String,
         bundleIdentifiers: [String],
         selfUpdaterPath: String,
         downloadProgressImage: NSImage? = nil,
-        progressWindowDisplayMode: ProgressWindowDisplayMode = .whenUpdatingTakesLongerThan(SelfUpdater.defaultProgressWindowDelay)
+        progressWindowDisplayMode: ProgressWindowDisplayMode = .whenUpdatingTakesLongerThan(SelfUpdater.defaultProgressWindowDelay),
+        downloadTimeout: TimeInterval? = nil
     ) {
         self.appName = appName
         self.bundleIdentifiers = bundleIdentifiers
         self.selfUpdaterPath = selfUpdaterPath
         self.downloadProgressImage = downloadProgressImage
         self.progressWindowDisplayMode = progressWindowDisplayMode
+        self.downloadTimeout = downloadTimeout
     }
 
     // MARK: - Runtime State
