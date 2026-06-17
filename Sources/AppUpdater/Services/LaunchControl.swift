@@ -33,7 +33,10 @@ protocol ApplicationWorkspace {
 
     var runningApplications: [Application] { get }
 
-    func openApplication(at url: URL) async -> NSRunningApplication?
+    /**
+     * Launches the application at `url` and reports whether it was started.
+     */
+    func openApplication(at url: URL) async -> Bool
 }
 
 extension NSRunningApplication: RunningApplication {}
@@ -46,11 +49,28 @@ struct SystemApplicationWorkspace: ApplicationWorkspace {
         NSWorkspace.shared.runningApplications
     }
 
-    func openApplication(at url: URL) async -> NSRunningApplication? {
+    /**
+     * Launches the updated app through `/usr/bin/open -n` rather than
+     * `NSWorkspace.openApplication`.
+     *
+     * Launching with `open` means the new instance is started by `open`/launchd, so
+     * it is reparented away from this (about-to-exit) helper and is not treated as a
+     * continuation of the updater process. The `-n` flag forces a brand-new instance
+     * even if a stale copy is somehow still registered as running.
+     */
+    func openApplication(at url: URL) async -> Bool {
         await withCheckedContinuation { continuation in
-            let configuration = NSWorkspace.OpenConfiguration()
-            NSWorkspace.shared.openApplication(at: url, configuration: configuration) { application, error in
-                continuation.resume(returning: application)
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments = ["-n", url.path]
+            process.terminationHandler = { process in
+                continuation.resume(returning: process.terminationStatus == 0)
+            }
+
+            do {
+                try process.run()
+            } catch {
+                continuation.resume(returning: false)
             }
         }
     }
@@ -63,8 +83,7 @@ class LaunchControl {
     public static func smartRestart(priority: [String]) async {
         for appPath in priority {
             if FileManager.default.fileExists(atPath: appPath) {
-                let app = await LaunchControl.startApplication(at: appPath)
-                if app != nil {
+                if await LaunchControl.startApplication(at: appPath) {
                     return
                 }
             }
@@ -84,7 +103,8 @@ class LaunchControl {
         )
     }
 
-    public static func startApplication(at path: String) async -> NSRunningApplication? {
+    @discardableResult
+    public static func startApplication(at path: String) async -> Bool {
         await startApplication(at: path, workspace: SystemApplicationWorkspace())
     }
 
@@ -111,11 +131,12 @@ class LaunchControl {
         )
     }
 
+    @discardableResult
     static func startApplication<Workspace: ApplicationWorkspace>(
         at path: String,
         workspace: Workspace
-    ) async -> NSRunningApplication? {
-        let url = NSURL(fileURLWithPath: path, isDirectory: true) as URL
+    ) async -> Bool {
+        let url = URL(fileURLWithPath: path, isDirectory: true)
         return await workspace.openApplication(at: url)
     }
 

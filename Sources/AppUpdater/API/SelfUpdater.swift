@@ -102,10 +102,6 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
         Task { await self.installUpdate() }
     }
 
-    public func applicationWillTerminate(_ aNotification: Notification) {
-        exit(1)
-    }
-
     public func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         return false
     }
@@ -159,11 +155,16 @@ open class SelfUpdater: NSObject, NSApplicationDelegate {
 
         let appPath = await installExtractedApp(at: extractedAppPath, zipPath: zipPath)
 
-        // Restarting the app completes the visible flow; the helper updater then exits
-        _ = await LaunchControl.startApplication(at: appPath)
+        // Restarting the app completes the visible flow; the helper updater then exits.
+        // The new instance is launched via `/usr/bin/open -n`, so it is owned by
+        // launchd rather than this helper and is not treated as a continuation of it.
+        await LaunchControl.startApplication(at: appPath)
 
-        // Terminate the self-updater!
+        // Terminate the self-updater cleanly. Going through `NSApplication.terminate`
+        // (instead of a raw `exit`) lets AppKit post its termination notifications, so
+        // macOS removes the helper's Dock tile and window-server state instead of
+        // leaving a lingering icon behind. `terminate` exits the process itself.
         await progressWindow.finish()
-        exit(1)
+        await MainActor.run { NSApp.terminate(nil) }
     }
 }

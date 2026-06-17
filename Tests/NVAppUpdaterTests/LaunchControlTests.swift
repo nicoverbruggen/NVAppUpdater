@@ -72,8 +72,8 @@ private final class FakeApplicationWorkspace: ApplicationWorkspace {
         self.runningApplications = runningApplications
     }
 
-    func openApplication(at url: URL) async -> NSRunningApplication? {
-        nil
+    func openApplication(at url: URL) async -> Bool {
+        false
     }
 }
 

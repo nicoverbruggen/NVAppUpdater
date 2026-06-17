@@ -20,7 +20,7 @@ class Alert {
             buttonTitle: SelfUpdater.Translations.buttonOK,
             alertStyle: .critical,
             callback: shouldExit ? {
-                exit(0)
+                NSApp.terminate(nil)
             } : nil
         )
     }
